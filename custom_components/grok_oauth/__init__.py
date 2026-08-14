@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, Supp
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import config_entry_oauth2_flow, config_validation as cv, selector
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_loaded_integration
 
 from .client import GrokClient
 from .const import (
@@ -189,8 +190,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: GrokConfigEntry) -> bool
     selected = _selected(entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     LOGGER.info(
-        "Grok OAuth 0.2.1 ready account=%s chat=%s voice=%s realtime=%s imagine=%s "
+        "Grok OAuth %s ready account=%s chat=%s voice=%s realtime=%s imagine=%s "
         "(enable debug logging for custom_components.grok_oauth to see request traces)",
+        async_get_loaded_integration(hass, DOMAIN).version,
         entry.data.get("account_email") or entry.title,
         chat_models(selected),
         has_voice(selected),

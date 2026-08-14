@@ -10,7 +10,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/helv-io/ha-grok-oauth/releases"><img src="https://img.shields.io/github/v/release/helv-io/ha-grok-oauth?style=flat-square&color=18bcf2&label=release" alt="GitHub release"></a>
   <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square" alt="HACS Custom"></a>
   <a href="https://www.home-assistant.io/"><img src="https://img.shields.io/badge/Home%20Assistant-2026.8+-18bcf2?style=flat-square&logo=home-assistant&logoColor=white" alt="Home Assistant 2026.8+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"></a>
@@ -154,7 +153,7 @@ Diagnostics (⋮ on the integration card) include selected models, token expiry,
 ## Troubleshooting
 
 **`redirect_uri does not match any registered URI`**  
-You hit xAI with My Home Assistant as the callback. Use **0.2.1+** and the paste-callback browser flow, or device code.
+You hit xAI with My Home Assistant as the callback. Use **0.2.1** or later and the paste-callback browser flow, or device code.
 
 **Browser says the site can’t be reached after sign-in**  
 Expected. Copy `http://127.0.0.1:56121/callback?code=…` from the address bar and paste it back.
@@ -166,6 +165,18 @@ The existing entry is still valid. Remove it first only if you want a clean re-a
 Subscription OAuth traffic goes through the Grok CLI proxy first (`cli-chat-proxy.grok.com`), not `api.x.ai`.
 
 ---
+
+## Versioning
+
+This project follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). The integration version is the `version` field in [`custom_components/grok_oauth/manifest.json`](custom_components/grok_oauth/manifest.json).
+
+Given a version `MAJOR.MINOR.PATCH`:
+
+- **MAJOR** — incompatible changes to the integration’s public surface (config entries, entities, services)
+- **MINOR** — backwards-compatible features
+- **PATCH** — backwards-compatible fixes
+
+`0.y.z` is initial development: the surface can still move. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Disclaimer
 
