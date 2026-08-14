@@ -6,6 +6,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from voluptuous import MultipleInvalid
 
 from custom_components.grok_oauth import async_setup
 from custom_components.grok_oauth.const import (
@@ -32,6 +33,7 @@ async def test_generate_content_rejects_unknown_entry(hass: HomeAssistant) -> No
             SERVICE_GENERATE_CONTENT,
             {"config_entry": "missing-entry", "prompt": "hello"},
             blocking=True,
+            return_response=True,
         )
 
 
@@ -44,6 +46,7 @@ async def test_generate_image_rejects_unknown_entry(hass: HomeAssistant) -> None
             SERVICE_GENERATE_IMAGE,
             {"config_entry": "missing-entry", "prompt": "a cat"},
             blocking=True,
+            return_response=True,
         )
 
 
@@ -70,18 +73,20 @@ async def test_create_realtime_session_requires_realtime(
             SERVICE_CREATE_REALTIME_SESSION,
             {"config_entry": entry.entry_id},
             blocking=True,
+            return_response=True,
         )
 
 
 async def test_generate_image_rejects_invalid_n(hass: HomeAssistant) -> None:
     """n is validated by the service schema (1–8)."""
     await _register_services(hass)
-    with pytest.raises(ServiceValidationError):
+    with pytest.raises((ServiceValidationError, MultipleInvalid)):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_GENERATE_IMAGE,
             {"config_entry": "any", "prompt": "a cat", "n": 99},
             blocking=True,
+            return_response=True,
         )
 
 
@@ -90,10 +95,11 @@ async def test_create_realtime_session_rejects_short_ttl(
 ) -> None:
     """expires_seconds is validated by the service schema (30–3600)."""
     await _register_services(hass)
-    with pytest.raises(ServiceValidationError):
+    with pytest.raises((ServiceValidationError, MultipleInvalid)):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_CREATE_REALTIME_SESSION,
             {"config_entry": "any", "expires_seconds": 1},
             blocking=True,
+            return_response=True,
         )

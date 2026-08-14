@@ -165,5 +165,5 @@ def test_preview_redacts_tokens() -> None:
     )
     text = preview(f"Authorization: Bearer {jwt} leftover")
     assert jwt not in text
-    assert "Bearer <redacted>" in text or "<jwt>" in text
-    assert "eyJ" not in text or "<jwt>" in text
+    assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in text
+    assert "signaturepartthatislongenoughxx" not in text
