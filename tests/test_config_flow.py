@@ -60,12 +60,17 @@ async def _start_browser(hass: HomeAssistant) -> tuple[GrokOAuthConfigFlow, dict
     return flow, placeholders
 
 
-async def test_user_step_shows_sign_in_methods(hass: HomeAssistant) -> None:
-    """The first step is method selection, not My Home Assistant OAuth."""
+async def test_user_step_defaults_to_device_code(hass: HomeAssistant) -> None:
+    """Device code is first and selected by default; browser paste is backup."""
     result = await _flow(hass).async_step_user()
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result["errors"] in (None, {})
+    schema = result["data_schema"].schema
+    method_key = next(key for key in schema if getattr(key, "schema", None) == "method")
+    assert method_key.default() == "device"
+    options = schema[method_key].config["options"]
+    assert [option["value"] for option in options] == ["device", "browser"]
 
 
 async def test_browser_missing_code(hass: HomeAssistant) -> None:
