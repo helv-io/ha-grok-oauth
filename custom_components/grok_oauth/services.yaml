@@ -1,0 +1,111 @@
+generate_content:
+  name: Generate content
+  description: Send a prompt to a selected Grok chat model using the SuperGrok OAuth session.
+  fields:
+    config_entry:
+      name: Grok OAuth entry
+      required: true
+      selector:
+        config_entry:
+          integration: grok_oauth
+    prompt:
+      name: Prompt
+      required: true
+      selector:
+        text:
+          multiline: true
+    model:
+      name: Model
+      required: false
+      selector:
+        text:
+
+generate_image:
+  name: Generate image
+  description: Generate an image with Grok Imagine via /v1/images/generations (and /v1/image/generations).
+  fields:
+    config_entry:
+      name: Grok OAuth entry
+      required: true
+      selector:
+        config_entry:
+          integration: grok_oauth
+    prompt:
+      name: Prompt
+      required: true
+      selector:
+        text:
+          multiline: true
+    model:
+      name: Imagine model
+      required: false
+      example: grok-imagine-image-2.0
+      selector:
+        text:
+    n:
+      name: Number of images
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 8
+    aspect_ratio:
+      name: Aspect ratio
+      required: false
+      selector:
+        select:
+          options:
+            - "1:1"
+            - "16:9"
+            - "9:16"
+            - "4:3"
+            - "3:4"
+            - "3:2"
+            - "2:3"
+            - "2:1"
+            - "1:2"
+            - auto
+    resolution:
+      name: Resolution
+      required: false
+      selector:
+        select:
+          options:
+            - "1k"
+            - "2k"
+    response_format:
+      name: Response format
+      required: false
+      default: url
+      selector:
+        select:
+          options:
+            - url
+            - b64_json
+
+create_realtime_session:
+  name: Create Realtime session
+  description: Mint an ephemeral Grok Realtime client secret (POST /v1/realtime/client_secrets) for wss://api.x.ai/v1/realtime.
+  fields:
+    config_entry:
+      name: Grok OAuth entry
+      required: true
+      selector:
+        config_entry:
+          integration: grok_oauth
+    model:
+      name: Realtime model
+      required: false
+      default: grok-voice-latest
+      selector:
+        text:
+    expires_seconds:
+      name: Secret lifetime
+      required: false
+      default: 600
+      selector:
+        number:
+          min: 30
+          max: 3600
+          unit_of_measurement: seconds

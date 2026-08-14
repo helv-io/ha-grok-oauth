@@ -1,0 +1,24 @@
+{
+  "entity": {
+    "conversation": {
+      "conversation": {
+        "default": "mdi:creation-outline"
+      }
+    },
+    "ai_task": {
+      "ai_task": {
+        "default": "mdi:creation"
+      }
+    },
+    "tts": {
+      "tts": {
+        "default": "mdi:account-voice"
+      }
+    },
+    "stt": {
+      "stt": {
+        "default": "mdi:microphone-message"
+      }
+    }
+  }
+}

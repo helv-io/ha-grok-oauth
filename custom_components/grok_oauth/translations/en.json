@@ -1,0 +1,118 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sign in with SuperGrok",
+        "description": "Browser login uses Home Assistant's public redirector (https://my.home-assistant.io/redirect/oauth) so xAI can deliver the callback to this instance.",
+        "data": {
+          "method": "Sign-in method"
+        }
+      },
+      "pick_implementation": {
+        "title": "Sign in with SuperGrok",
+        "description": "Continue to xAI. After you approve, My Home Assistant will send the callback back here.",
+        "data": {
+          "implementation": "OAuth implementation"
+        }
+      },
+      "auth": {
+        "title": "Approve Grok access"
+      },
+      "oauth": {
+        "title": "Sign in with SuperGrok"
+      },
+      "oauth_progress": {
+        "title": "Approve Grok access"
+      },
+      "oauth_finish": {
+        "title": "Finishing SuperGrok login"
+      },
+      "models": {
+        "title": "Expose Grok to Home Assistant",
+        "description": "Pick the chat models, Voice (TTS/STT), Realtime, and Imagine surfaces to create as Home Assistant entities.",
+        "data": {
+          "selected_models": "Models and capabilities"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Grok OAuth",
+        "description": "Your SuperGrok session expired or was revoked. Sign in again to keep using Grok in Home Assistant."
+      }
+    },
+    "progress": {
+      "wait_for_authorization": "Open [{url}]({url}) on any device and approve access.\n\nIf asked for a code, enter: **{user_code}**\n\nThis page will continue automatically after you approve."
+    },
+    "error": {
+      "select_model": "Select at least one model or capability.",
+      "cannot_connect": "Could not reach auth.x.ai.",
+      "oauth_failed": "SuperGrok OAuth failed.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This SuperGrok account is already configured.",
+      "cannot_connect": "Could not reach auth.x.ai to start SuperGrok login.",
+      "oauth_error": "xAI returned an incomplete OAuth response.",
+      "oauth_failed": "SuperGrok OAuth failed.",
+      "oauth_timeout": "Timed out waiting for SuperGrok approval. Start setup again.",
+      "access_denied": "Access was denied on the xAI authorization page.",
+      "reauth_successful": "SuperGrok login was refreshed.",
+      "wrong_account": "You signed in with a different SuperGrok account.",
+      "tier_blocked": "This SuperGrok account is not entitled to the OAuth API surface.",
+      "aborted": "Login was cancelled.",
+      "missing_configuration": "Grok OAuth is missing its OAuth implementation.",
+      "missing_credentials": "Grok OAuth credentials are missing.",
+      "authorize_url_timeout": "Timed out creating the SuperGrok authorize URL.",
+      "no_url_available": "No URL available to start OAuth. Check My Home Assistant is enabled.",
+      "oauth_unauthorized": "xAI rejected the authorization code.",
+      "oauth_implementation_unavailable": "The SuperGrok OAuth implementation is not available.",
+      "user_rejected_authorize": "xAI reported: {error}"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Grok models",
+        "description": "Choose which Grok chat models, Voice, Realtime, and Imagine surfaces Home Assistant should expose.",
+        "data": {
+          "selected_models": "Models and capabilities"
+        }
+      }
+    },
+    "error": {
+      "select_model": "Select at least one model or capability."
+    }
+  },
+  "services": {
+    "generate_content": {
+      "name": "Generate content",
+      "description": "Send a prompt to a Grok chat model using the SuperGrok OAuth session.",
+      "fields": {
+        "config_entry": { "name": "Grok OAuth entry", "description": "Configured Grok OAuth integration." },
+        "prompt": { "name": "Prompt", "description": "Text to send to Grok." },
+        "model": { "name": "Model", "description": "Optional chat model override." }
+      }
+    },
+    "generate_image": {
+      "name": "Generate image",
+      "description": "Generate an image with Grok Imagine.",
+      "fields": {
+        "config_entry": { "name": "Grok OAuth entry", "description": "Configured Grok OAuth integration." },
+        "prompt": { "name": "Prompt", "description": "Image description." },
+        "model": { "name": "Imagine model", "description": "grok-imagine-image-2.0, grok-imagine-image, or grok-imagine-image-quality." },
+        "n": { "name": "Number of images", "description": "How many images to generate." },
+        "aspect_ratio": { "name": "Aspect ratio", "description": "Imagine aspect ratio." },
+        "resolution": { "name": "Resolution", "description": "1k or 2k." },
+        "response_format": { "name": "Response format", "description": "url or b64_json." }
+      }
+    },
+    "create_realtime_session": {
+      "name": "Create Realtime session",
+      "description": "Mint an ephemeral Grok Realtime client secret.",
+      "fields": {
+        "config_entry": { "name": "Grok OAuth entry", "description": "Configured Grok OAuth integration." },
+        "model": { "name": "Realtime model", "description": "grok-voice-latest or grok-voice-think-fast-2.0." },
+        "expires_seconds": { "name": "Secret lifetime", "description": "30–3600 seconds." }
+      }
+    }
+  }
+}
