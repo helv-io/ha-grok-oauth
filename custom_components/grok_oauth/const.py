@@ -23,7 +23,9 @@ OAUTH_ISSUER: Final = "https://auth.x.ai"
 OAUTH_AUTHORIZE_URL: Final = "https://auth.x.ai/oauth2/authorize"
 OAUTH_DEVICE_URL: Final = "https://auth.x.ai/oauth2/device/code"
 OAUTH_TOKEN_URL: Final = "https://auth.x.ai/oauth2/token"
-MY_AUTH_CALLBACK: Final = "https://my.home-assistant.io/redirect/oauth"
+# Only redirect registered on the public Grok CLI client. My Home Assistant
+# (https://my.home-assistant.io/redirect/oauth) is rejected by auth.x.ai.
+OAUTH_REDIRECT_URI: Final = "http://127.0.0.1:56121/callback"
 OAUTH_USERINFO_URL: Final = "https://auth.x.ai/oauth2/userinfo"
 OAUTH_REVOKE_URL: Final = "https://auth.x.ai/oauth2/revoke"
 OAUTH_SCOPE: Final = (

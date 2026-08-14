@@ -1,11 +1,15 @@
-"""SuperGrok device-code OAuth against auth.x.ai."""
+"""SuperGrok OAuth against auth.x.ai (device code + auth-code PKCE)."""
 
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import secrets
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import aiohttp
 
@@ -19,6 +23,7 @@ from .const import (
     OAUTH_CLIENT_ID,
     OAUTH_DEVICE_GRANT,
     OAUTH_DEVICE_URL,
+    OAUTH_REDIRECT_URI,
     OAUTH_SCOPE,
     OAUTH_TOKEN_URL,
     OAUTH_USERINFO_URL,
@@ -123,6 +128,97 @@ def tokens_from_payload(payload: dict[str, Any], previous: OAuthTokens | None = 
         id_token=payload.get("id_token") or (previous.id_token if previous else None),
         token_type=payload.get("token_type") or "Bearer",
     )
+
+
+def generate_pkce(length: int = 128) -> tuple[str, str]:
+    """Return (code_verifier, S256 code_challenge)."""
+    length = min(max(length, 43), 128)
+    verifier = secrets.token_urlsafe(96)[:length]
+    challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest())
+        .decode("ascii")
+        .rstrip("=")
+    )
+    return verifier, challenge
+
+
+def build_authorize_url(*, code_challenge: str, state: str) -> str:
+    """Authorization-code URL using the registered Grok CLI loopback redirect."""
+    return f"{OAUTH_AUTHORIZE_URL}?{urlencode({
+        'response_type': 'code',
+        'client_id': OAUTH_CLIENT_ID,
+        'redirect_uri': OAUTH_REDIRECT_URI,
+        'scope': OAUTH_SCOPE,
+        'state': state,
+        'code_challenge': code_challenge,
+        'code_challenge_method': 'S256',
+    })}"
+
+
+def parse_authorization_callback(value: str) -> tuple[str | None, str | None, str | None]:
+    """Parse a pasted callback URL, query string, or bare code.
+
+    Returns (code, state, error).
+    """
+    raw = (value or "").strip()
+    if not raw:
+        return None, None, None
+
+    query = ""
+    lowered = raw.lower()
+    if lowered.startswith("http://") or lowered.startswith("https://"):
+        parsed = urlparse(raw)
+        query = parsed.query or parsed.fragment
+    elif "code=" in raw or "error=" in raw:
+        query = raw.split("?", 1)[-1]
+    else:
+        return raw, None, None
+
+    params = parse_qs(query, keep_blank_values=False)
+    code = (params.get("code") or [None])[0]
+    state = (params.get("state") or [None])[0]
+    error = (params.get("error") or [None])[0]
+    return code, state, error
+
+
+async def exchange_authorization_code(
+    session: aiohttp.ClientSession,
+    code: str,
+    code_verifier: str,
+) -> OAuthTokens:
+    """Exchange an authorization code + PKCE verifier for tokens."""
+    async with session.post(
+        OAUTH_TOKEN_URL,
+        data={
+            "grant_type": "authorization_code",
+            "client_id": OAUTH_CLIENT_ID,
+            "code": code,
+            "code_verifier": code_verifier,
+            "redirect_uri": OAUTH_REDIRECT_URI,
+        },
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        timeout=aiohttp.ClientTimeout(total=30),
+    ) as resp:
+        text = await resp.text()
+        try:
+            payload = await resp.json(content_type=None)
+        except aiohttp.ContentTypeError:
+            payload = {"error": text}
+
+    if resp.status >= 400:
+        error = payload.get("error") or f"http_{resp.status}"
+        details = str(payload.get("error_description") or error)
+        LOGGER.warning("Authorization-code exchange failed (%s): %s", resp.status, details[:200])
+        if error in ("access_denied", "authorization_denied"):
+            raise GrokOAuthError("access_denied", details)
+        if resp.status == 403:
+            raise GrokOAuthError("tier_blocked", details)
+        raise GrokOAuthError("oauth_failed", details)
+    LOGGER.info("SuperGrok browser login succeeded")
+    return tokens_from_payload(payload)
 
 
 async def request_device_authorization(session: aiohttp.ClientSession) -> DeviceAuthorization:
@@ -250,7 +346,7 @@ async def refresh_tokens(
 
 
 class GrokOAuth2Implementation(LocalOAuth2ImplementationWithPkce):
-    """SuperGrok authorization-code + PKCE via My Home Assistant."""
+    """SuperGrok authorization-code + PKCE using the registered loopback URI."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(
@@ -266,6 +362,11 @@ class GrokOAuth2Implementation(LocalOAuth2ImplementationWithPkce):
     def name(self) -> str:
         """Name shown in the HA OAuth picker."""
         return "SuperGrok"
+
+    @property
+    def redirect_uri(self) -> str:
+        """xAI only accepts the Grok CLI loopback, not My Home Assistant."""
+        return OAUTH_REDIRECT_URI
 
     @property
     def extra_authorize_data(self) -> dict:

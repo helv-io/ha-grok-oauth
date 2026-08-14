@@ -3,7 +3,7 @@
   "name": "Grok OAuth",
   "codeowners": ["@helv-io"],
   "config_flow": true,
-  "dependencies": ["conversation", "http", "my"],
+  "dependencies": ["conversation"],
   "documentation": "https://github.com/helv-io/ha-grok-oauth",
   "integration_type": "service",
   "iot_class": "cloud_polling",
@@ -11,5 +11,5 @@
   "loggers": ["custom_components.grok_oauth"],
   "quality_scale": "bronze",
   "requirements": [],
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

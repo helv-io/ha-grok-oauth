@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow, SOURCE_REAUTH
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+    SOURCE_REAUTH,
+)
 from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT
-from homeassistant.helpers import config_entry_oauth2_flow, llm, selector
+from homeassistant.helpers import llm, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -19,11 +26,16 @@ from .const import (
     DEFAULT_NAME,
     DOMAIN,
     LOGGER,
+    OAUTH_REDIRECT_URI,
 )
 from .models import DEFAULT_SELECTED_MODELS, picker_options
 from .oauth import (
     GrokOAuthError,
+    build_authorize_url,
+    exchange_authorization_code,
     fetch_userinfo,
+    generate_pkce,
+    parse_authorization_callback,
     poll_device_token,
     request_device_authorization,
 )
@@ -46,41 +58,31 @@ def _models_schema(defaults: list[str] | None = None) -> vol.Schema:
     )
 
 
-class GrokOAuthConfigFlow(
-    config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
-):
-    """SuperGrok login via My Home Assistant, with device-code fallback."""
+class GrokOAuthConfigFlow(ConfigFlow, domain=DOMAIN):
+    """SuperGrok login via loopback paste-callback, with device-code fallback."""
 
     DOMAIN = DOMAIN
     VERSION = 1
 
     def __init__(self) -> None:
-        super().__init__()
         self._tokens: dict[str, Any] | None = None
         self._account: dict[str, Any] = {}
         self._oauth_error: str | None = None
         self._reauth_entry: ConfigEntry | None = None
-
-    @property
-    def logger(self) -> Any:
-        """Return logger."""
-        return LOGGER
-
-    @property
-    def extra_authorize_data(self) -> dict:
-        """Ask xAI for a refresh token."""
-        return {"scope": "openid profile email offline_access grok-cli:access api:access conversations:read conversations:write"}
+        self._code_verifier: str | None = None
+        self._oauth_state: str | None = None
+        self._authorize_url: str | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Choose browser callback (My Home Assistant) or device code."""
+        """Choose browser paste-callback or device code."""
         if user_input is not None:
             method = user_input.get("method") or "browser"
             LOGGER.info("Starting SuperGrok login via %s", method)
             if method == "device":
                 return await self.async_step_device()
-            return await self.async_step_pick_implementation()
+            return await self.async_step_browser()
 
         return self.async_show_form(
             step_id="user",
@@ -91,11 +93,11 @@ class GrokOAuthConfigFlow(
                             options=[
                                 {
                                     "value": "browser",
-                                    "label": "Browser login via My Home Assistant (recommended)",
+                                    "label": "Browser login (paste the localhost callback URL)",
                                 },
                                 {
                                     "value": "device",
-                                    "label": "Device code (if the browser redirect is blocked)",
+                                    "label": "Device code (no paste — approve on any device)",
                                 },
                             ],
                             mode=selector.SelectSelectorMode.LIST,
@@ -105,25 +107,69 @@ class GrokOAuthConfigFlow(
             ),
         )
 
-    async def async_oauth_create_entry(self, data: dict) -> ConfigFlowResult:
-        """Turn the My Home Assistant callback into tokens, then pick models."""
-        token = data.get("token") or {}
-        access = token.get("access_token")
-        refresh = token.get("refresh_token")
-        if not access or not refresh:
-            return self.async_abort(reason="oauth_error")
-        self._tokens = {
-            "access_token": access,
-            "refresh_token": refresh,
-            "expires_at": int(token.get("expires_at") or 0),
-            "id_token": token.get("id_token"),
-            "token_type": token.get("token_type") or "Bearer",
-            "auth_implementation": data.get("auth_implementation"),
-        }
-        self._account = await fetch_userinfo(
-            async_get_clientsession(self.hass), access
+    async def async_step_browser(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Authorization-code + PKCE using the registered Grok CLI loopback."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            code, state, error = parse_authorization_callback(
+                user_input.get("callback_url") or ""
+            )
+            if error in ("access_denied", "authorization_denied"):
+                return self.async_abort(reason="access_denied")
+            if error:
+                LOGGER.warning("SuperGrok browser callback error=%s", error)
+                errors["base"] = "oauth_failed"
+            elif not code:
+                errors["base"] = "missing_code"
+            elif (
+                state
+                and self._oauth_state
+                and state != self._oauth_state
+            ):
+                errors["base"] = "state_mismatch"
+            elif not self._code_verifier:
+                errors["base"] = "oauth_failed"
+            else:
+                session = async_get_clientsession(self.hass)
+                try:
+                    tokens = await exchange_authorization_code(
+                        session, code, self._code_verifier
+                    )
+                except GrokOAuthError as err:
+                    LOGGER.warning("SuperGrok code exchange failed: %s", err.details)
+                    if err.reason in ("access_denied", "tier_blocked"):
+                        return self.async_abort(reason=err.reason)
+                    errors["base"] = (
+                        err.reason
+                        if err.reason in ("cannot_connect", "oauth_failed")
+                        else "oauth_failed"
+                    )
+                else:
+                    self._tokens = tokens.as_dict()
+                    self._account = await fetch_userinfo(session, tokens.access_token)
+                    return await self._async_after_login()
+
+        if not self._authorize_url:
+            self._code_verifier, challenge = generate_pkce()
+            self._oauth_state = secrets.token_urlsafe(24)
+            self._authorize_url = build_authorize_url(
+                code_challenge=challenge, state=self._oauth_state
+            )
+            LOGGER.info(
+                "Starting SuperGrok browser login redirect_uri=%s", OAUTH_REDIRECT_URI
+            )
+
+        return self.async_show_form(
+            step_id="browser",
+            data_schema=vol.Schema({vol.Required("callback_url"): str}),
+            errors=errors,
+            description_placeholders={
+                "authorize_url": self._authorize_url or "",
+                "redirect_uri": OAUTH_REDIRECT_URI,
+            },
         )
-        return await self._async_after_login()
 
     async def async_step_device(
         self, user_input: dict[str, Any] | None = None

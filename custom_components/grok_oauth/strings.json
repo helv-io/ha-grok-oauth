@@ -3,16 +3,16 @@
     "step": {
       "user": {
         "title": "Sign in with SuperGrok",
-        "description": "Browser login uses Home Assistant's public redirector (https://my.home-assistant.io/redirect/oauth) so xAI can deliver the callback to this instance.",
+        "description": "xAI only accepts the Grok CLI loopback (`http://127.0.0.1:56121/callback`), not My Home Assistant. Browser login asks you to paste that callback URL. Device code skips the paste.",
         "data": {
           "method": "Sign-in method"
         }
       },
-      "pick_implementation": {
+      "browser": {
         "title": "Sign in with SuperGrok",
-        "description": "Continue to xAI. After you approve, My Home Assistant will send the callback back here.",
+        "description": "1. Open [this SuperGrok sign-in page]({authorize_url}) and approve access.\n\n2. After you approve, the browser goes to `{redirect_uri}` and fails to connect. That is expected.\n\n3. Copy the **full URL** from the address bar (it contains `code=`) and paste it below. A bare authorization code also works.",
         "data": {
-          "implementation": "OAuth implementation"
+          "callback_url": "Callback URL"
         }
       },
       "auth": {
@@ -46,6 +46,8 @@
       "select_model": "Select at least one model or capability.",
       "cannot_connect": "Could not reach auth.x.ai.",
       "oauth_failed": "SuperGrok OAuth failed.",
+      "missing_code": "Paste the full localhost callback URL (it must contain code=), or just the authorization code.",
+      "state_mismatch": "That callback does not match this sign-in attempt. Open the sign-in link again and paste the new URL.",
       "unknown": "Unexpected error."
     },
     "abort": {
@@ -62,7 +64,7 @@
       "missing_configuration": "Grok OAuth is missing its OAuth implementation.",
       "missing_credentials": "Grok OAuth credentials are missing.",
       "authorize_url_timeout": "Timed out creating the SuperGrok authorize URL.",
-      "no_url_available": "No URL available to start OAuth. Check My Home Assistant is enabled.",
+      "no_url_available": "No URL available to start OAuth.",
       "oauth_unauthorized": "xAI rejected the authorization code.",
       "oauth_implementation_unavailable": "The SuperGrok OAuth implementation is not available.",
       "user_rejected_authorize": "xAI reported: {error}"

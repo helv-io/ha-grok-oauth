@@ -26,12 +26,18 @@ After you pick models in the multi-picker:
 
 ## Setup
 
-1. Choose **Browser login via My Home Assistant** (recommended).
-2. Sign in at xAI. The callback goes through `https://my.home-assistant.io/redirect/oauth`.
-3. Multi-select chat models, Voice, Realtime, and Imagine.
-4. Point your Voice Assistant pipeline at **Grok Voice STT** → a Grok conversation agent → **Grok Voice TTS**.
+xAI’s SuperGrok / Grok CLI public client only allows `http://127.0.0.1:56121/callback`. It rejects My Home Assistant (`https://my.home-assistant.io/redirect/oauth`).
 
-Device-code login is available if the browser redirect is blocked.
+**Browser login**
+
+1. Choose **Browser login (paste the localhost callback URL)**.
+2. Open the SuperGrok sign-in link and approve access.
+3. The browser then goes to `http://127.0.0.1:56121/callback?...` and fails to connect. That is expected — nothing is listening on your computer.
+4. Copy the **full URL** from the address bar (it contains `code=`) and paste it back into the setup form.
+
+**Device code** (no paste): open the verification URL on any device and approve. The form continues automatically.
+
+Then multi-select chat models, Voice, Realtime, and Imagine, and point your Voice Assistant pipeline at **Grok Voice STT** → a Grok conversation agent → **Grok Voice TTS**.
 
 ## Services
 
@@ -50,5 +56,4 @@ Diagnostics (three-dot menu on the integration card) include selected models, to
 ## Requirements
 
 - Home Assistant 2026.8+
-- `my:` enabled (included in `default_config`)
 - SuperGrok or X Premium+

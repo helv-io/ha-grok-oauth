@@ -48,12 +48,7 @@ def _persist(hass: HomeAssistant, entry: ConfigEntry) -> Callable[[OAuthTokens],
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the My Home Assistant OAuth implementation and services."""
-    try:
-        hass.http.register_view(config_entry_oauth2_flow.OAuth2AuthorizeCallbackView())
-    except Exception:  # noqa: BLE001 - already registered by another OAuth integration
-        LOGGER.debug("OAuth callback view already registered")
-
+    """Register services. Browser login uses the Grok CLI loopback, not My HA."""
     config_entry_oauth2_flow.async_register_implementation(
         hass, DOMAIN, GrokOAuth2Implementation(hass)
     )
@@ -194,7 +189,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GrokConfigEntry) -> bool
     selected = _selected(entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     LOGGER.info(
-        "Grok OAuth 0.2.0 ready account=%s chat=%s voice=%s realtime=%s imagine=%s "
+        "Grok OAuth 0.2.1 ready account=%s chat=%s voice=%s realtime=%s imagine=%s "
         "(enable debug logging for custom_components.grok_oauth to see request traces)",
         entry.data.get("account_email") or entry.title,
         chat_models(selected),
