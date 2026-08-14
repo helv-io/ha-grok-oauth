@@ -105,6 +105,7 @@ class GrokOAuthConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                 }
             ),
+            description_placeholders={"redirect_uri": OAUTH_REDIRECT_URI},
         )
 
     async def async_step_browser(

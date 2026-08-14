@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Sign in with SuperGrok",
-        "description": "xAI only accepts the Grok CLI loopback (`http://127.0.0.1:56121/callback`), not My Home Assistant. Browser login asks you to paste that callback URL. Device code skips the paste.",
+        "description": "xAI only accepts the Grok CLI loopback (`{redirect_uri}`), not My Home Assistant. Browser login asks you to paste that callback URL. Device code skips the paste.",
         "data": {
           "method": "Sign-in method"
         }
